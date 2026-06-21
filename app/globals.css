@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --void-black: #0b0b0b;
+  --bioluminescent-blue: #6366f1;
+  --hydrothermal-gold: #d4af7a;
+}
+
+@layer base {
+  html {
+    background-color: var(--void-black);
+    /* Lenis controls smoothing; never let the native smooth-scroll fight it. */
+    scroll-behavior: auto;
+  }
+
+  body {
+    background-color: var(--void-black);
+    color: rgba(255, 255, 255, 0.95);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.3);
+    color: #ffffff;
+  }
+
+  /* A whisper-thin custom scrollbar that doesn't break the dark mood. */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.25);
+    border-radius: 9999px;
+  }
+}
+
+@layer utilities {
+  .font-aalto-display {
+    font-family: var(--font-alto), var(--font-serif), Georgia, serif;
+    font-feature-settings: normal;
+    font-kerning: normal;
+    font-synthesis: none;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+  }
+
+  .font-aalto-alt {
+    font-feature-settings: "salt" 1, "aalt" 1;
+  }
+}
+
+/* Lenis smooth-scroll plumbing. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/*
+ * Reduced motion: neutralise every transition/animation while preserving final
+ * states, and re-enable native scrolling (Lenis is not instantiated anyway).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
