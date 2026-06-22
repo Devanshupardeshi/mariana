@@ -19,6 +19,8 @@ export interface ScrollState {
   depth: number;
   /** Signed scroll velocity (Lenis), for subtle motion-streak effects. */
   velocity: number;
+  /** Smoothed absolute velocity, normalised to 0..1 as descent pressure. */
+  pressure: number;
   /** Raw pointer position, normalised to -1..1 with origin at viewport centre. */
   pointerX: number;
   pointerY: number;
@@ -32,6 +34,7 @@ export const scrollState: ScrollState = {
   smoothProgress: 0,
   depth: 0,
   velocity: 0,
+  pressure: 0,
   pointerX: 0,
   pointerY: 0,
   smoothPointerX: 0,

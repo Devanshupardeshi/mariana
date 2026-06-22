@@ -55,6 +55,7 @@ export default function Creature({
       uTime: { value: 0 },
       uScrollProgress: { value: 0 },
       uPresence: { value: 0 },
+      uCeremony: { value: 0 },
       uPointer: { value: new THREE.Vector2(0, 0) },
       uColorCore: { value: new THREE.Color(colorCore ?? PALETTE.bioluminescentBlue) },
       uColorRim: { value: new THREE.Color(colorRim ?? PALETTE.hydrothermalGold) },
@@ -74,6 +75,7 @@ export default function Creature({
     uniforms.uTime.value = t * (reduced ? 0.4 : 1);
     uniforms.uScrollProgress.value = sp;
     uniforms.uPresence.value = presence;
+    uniforms.uCeremony.value = reduced ? 0 : smoothstep(0.86, 0.98, sp);
     uniforms.uPointer.value.set(
       reduced ? 0 : scrollState.smoothPointerX,
       reduced ? 0 : scrollState.smoothPointerY,

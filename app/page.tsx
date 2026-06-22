@@ -10,6 +10,7 @@ import ScreenReaderNarrative from '@/components/dom/ScreenReaderNarrative';
 import Narrative from '@/components/dom/Narrative';
 import TelemetryHUD from '@/components/hud/TelemetryHUD';
 import Preloader from '@/components/dom/Preloader';
+import ActTransitionFX from '@/components/dom/ActTransitionFX';
 
 /**
  * The WebGL canvas is loaded client-only (no SSR) and mounted after first paint
@@ -58,6 +59,7 @@ export default function Page() {
         )}
 
         <Narrative />
+        <ActTransitionFX />
         <TelemetryHUD />
         <Preloader />
       </SmoothScrollProvider>

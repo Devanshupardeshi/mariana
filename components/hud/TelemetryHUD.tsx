@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { useExperience } from '@/lib/store';
 import { scrollState } from '@/lib/scroll-state';
 import { ACTS, COORDINATES, type Act } from '@/lib/constants';
-import { clamp, formatDepth } from '@/lib/math';
+import { clamp, formatDepth, smoothstep } from '@/lib/math';
 import { SonarMark, FixMarker, CornerBracket } from '@/components/ui/icons';
 
 const TRACK_TOP = 12;
@@ -33,6 +33,12 @@ export default function TelemetryHUD() {
   const actRef = useRef<HTMLSpanElement>(null);
   const markerRef = useRef<SVGGElement>(null);
   const traveledRef = useRef<SVGLineElement>(null);
+  const cornerRef = useRef<HTMLDivElement>(null);
+  const topLeftRef = useRef<HTMLDivElement>(null);
+  const topRightRef = useRef<HTMLDivElement>(null);
+  const gaugeRef = useRef<HTMLDivElement>(null);
+  const depthBlockRef = useRef<HTMLDivElement>(null);
+  const actBlockRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let raf = 0;
@@ -57,6 +63,16 @@ export default function TelemetryHUD() {
       if (markerRef.current) markerRef.current.setAttribute('transform', `translate(0 ${y})`);
       if (traveledRef.current) traveledRef.current.setAttribute('y2', `${y}`);
 
+      const setOpacity = (el: HTMLElement | null, value: number) => {
+        if (el) el.style.opacity = `${clamp(value)}`;
+      };
+      setOpacity(topLeftRef.current, 1 - smoothstep(0.93, 0.958, p));
+      setOpacity(topRightRef.current, 1 - smoothstep(0.94, 0.968, p));
+      setOpacity(gaugeRef.current, 1 - smoothstep(0.948, 0.978, p));
+      setOpacity(depthBlockRef.current, 1 - smoothstep(0.956, 0.988, p));
+      setOpacity(actBlockRef.current, 1 - smoothstep(0.964, 0.994, p));
+      setOpacity(cornerRef.current, 1 - smoothstep(0.976, 0.998, p));
+
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -70,13 +86,15 @@ export default function TelemetryHUD() {
       style={{ opacity: revealed ? 1 : 0 }}
     >
       {/* Corner brackets frame the viewport like a vessel viewport. */}
-      <CornerBracket className="absolute left-5 top-5 h-4 w-4 text-white/25" />
-      <CornerBracket className="absolute right-5 top-5 h-4 w-4 rotate-90 text-white/25" />
-      <CornerBracket className="absolute bottom-5 left-5 h-4 w-4 -rotate-90 text-white/25" />
-      <CornerBracket className="absolute bottom-5 right-5 h-4 w-4 rotate-180 text-white/25" />
+      <div ref={cornerRef}>
+        <CornerBracket className="absolute left-5 top-5 h-4 w-4 text-white/25" />
+        <CornerBracket className="absolute right-5 top-5 h-4 w-4 rotate-90 text-white/25" />
+        <CornerBracket className="absolute bottom-5 left-5 h-4 w-4 -rotate-90 text-white/25" />
+        <CornerBracket className="absolute bottom-5 right-5 h-4 w-4 rotate-180 text-white/25" />
+      </div>
 
       {/* Top-left: the initiative wordmark. */}
-      <div className="absolute left-8 top-7 flex items-center gap-3">
+      <div ref={topLeftRef} className="absolute left-8 top-7 flex items-center gap-3">
         <SonarMark className="h-6 w-6 text-biolume" />
         <div className="font-mono text-[10px] uppercase leading-tight tracking-telemetry text-white/65">
           <div>Mariana</div>
@@ -85,7 +103,7 @@ export default function TelemetryHUD() {
       </div>
 
       {/* Top-right: vessel + coordinates. */}
-      <div className="absolute right-8 top-7 flex items-center gap-3 text-right">
+      <div ref={topRightRef} className="absolute right-8 top-7 flex items-center gap-3 text-right">
         <div className="font-mono text-[10px] uppercase leading-tight tracking-telemetry text-white/65">
           <div>Descent Vessel · Nereus</div>
           <div className="text-white/35">Coordinates {COORDINATES.label}</div>
@@ -94,7 +112,7 @@ export default function TelemetryHUD() {
       </div>
 
       {/* Right edge: the depth gauge. */}
-      <div className="absolute right-8 top-1/2 hidden -translate-y-1/2 md:block">
+      <div ref={gaugeRef} className="absolute right-8 top-1/2 hidden -translate-y-1/2 md:block">
         <svg viewBox="0 0 70 300" className="h-[46vh] max-h-[420px] w-[70px]" fill="none">
           {/* Base track. */}
           <line x1="48" y1={TRACK_TOP} x2="48" y2={TRACK_BOTTOM} stroke="rgba(255,255,255,0.16)" strokeWidth="1" />
@@ -136,7 +154,7 @@ export default function TelemetryHUD() {
       </div>
 
       {/* Bottom-left: the primary depth readout. */}
-      <div className="absolute bottom-8 left-8">
+      <div ref={depthBlockRef} className="absolute bottom-8 left-8">
         <div className="font-mono text-[10px] uppercase tracking-telemetry text-white/40">Depth</div>
         <div className="mt-1 flex items-baseline gap-2">
           <span
@@ -153,7 +171,7 @@ export default function TelemetryHUD() {
       </div>
 
       {/* Bottom-center: the act marker. */}
-      <div className="absolute bottom-9 left-1/2 hidden -translate-x-1/2 lg:block">
+      <div ref={actBlockRef} className="absolute bottom-9 left-1/2 hidden -translate-x-1/2 lg:block">
         <span
           ref={actRef}
           className="font-mono text-[10px] uppercase tracking-telemetry text-white/30"

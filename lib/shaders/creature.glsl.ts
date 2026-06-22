@@ -70,6 +70,7 @@ precision highp float;
 uniform float uTime;
 uniform float uScrollProgress;
 uniform float uPresence;
+uniform float uCeremony;
 uniform vec3  uColorCore;   // bioluminescent blue
 uniform vec3  uColorRim;    // hydrothermal gold
 uniform vec3  uColorDeep;   // near-void interior
@@ -104,9 +105,11 @@ void main() {
   // Core glow brightens gently with depth (the organism grows more luminous).
   float glow = mix(0.12, 0.45, uScrollProgress);
   color *= glow + fresnel * 0.7;
+  color = mix(color, uColorDeep * 0.28, smoothstep(0.0, 1.0, uCeremony) * 0.76);
 
   // Translucent glass: facing surfaces are sheer, rims catch the light.
   float alpha = (0.05 + fresnel * 0.7) * uPresence;
+  alpha *= mix(1.0, 0.72, smoothstep(0.0, 1.0, uCeremony));
   alpha = clamp(alpha, 0.0, 1.0);
 
   gl_FragColor = vec4(color, alpha);

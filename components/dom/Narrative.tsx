@@ -109,7 +109,9 @@ function applyReveal(
 function ImmersiveNarrative() {
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
   const heroRef = useRef<HTMLDivElement>(null);
+  const heroTitleRef = useRef<HTMLHeadingElement>(null);
   const sanctuaryRef = useRef<HTMLDivElement>(null);
+  const heroBreathPlayedRef = useRef(false);
 
   useEffect(() => {
     let raf = 0;
@@ -124,12 +126,35 @@ function ImmersiveNarrative() {
       if (heroRef.current) {
         heroRef.current.style.opacity = `${1 - smoothstep(0.955, 1.0, p)}`;
       }
+      const heroTitle = heroTitleRef.current;
+      if (heroTitle && p > 0.905 && p < 0.985 && !heroBreathPlayedRef.current) {
+        heroBreathPlayedRef.current = true;
+        gsap.killTweensOf(heroTitle);
+        gsap
+          .timeline({ defaults: { transformOrigin: '50% 52%' } })
+          .to(heroTitle, {
+            scale: 1.034,
+            filter: 'brightness(1.16)',
+            duration: 0.42,
+            ease: 'power2.out',
+          })
+          .to(heroTitle, {
+            scale: 1,
+            filter: 'brightness(1)',
+            duration: 0.64,
+            ease: 'power3.out',
+          });
+      }
+      if (p < 0.84) heroBreathPlayedRef.current = false;
       applyReveal(sanctuaryRef.current, computeReveal(p, SANCTUARY.in, SANCTUARY.out));
 
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (heroTitleRef.current) gsap.killTweensOf(heroTitleRef.current);
+    };
   }, []);
 
   // A slow, continuous float so the hero title feels suspended in the deep.
@@ -174,6 +199,7 @@ function ImmersiveNarrative() {
                 pStart={scene.in[0]}
                 pEnd={scene.in[1] + 0.02}
                 alternateChars={scene.alternateChars}
+                specimenPulse
               />
             </h2>
             <p className="mx-auto mt-7 max-w-md font-sans text-base font-light leading-loose text-white/65">
@@ -186,6 +212,7 @@ function ImmersiveNarrative() {
       {/* The MARIANA reveal — surfaces letter by letter from the golden ring. */}
       <div ref={heroRef} className="absolute inset-0 flex items-center justify-center px-6" style={{ opacity: 0 }}>
         <h2
+          ref={heroTitleRef}
           className="font-serif text-[15vw] leading-none text-white/95 md:text-[12vw]"
           style={{ textShadow: '0 0 80px rgba(212,175,122,0.35)' }}
         >
@@ -249,6 +276,7 @@ function ReducedNarrative() {
                 pStart={0}
                 pEnd={1}
                 alternateChars={scene.alternateChars}
+                specimenPulse
               />
             </h2>
             <p className="mx-auto mt-7 max-w-md font-sans text-base font-light leading-loose text-white/65">

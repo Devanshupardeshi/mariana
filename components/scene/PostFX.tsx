@@ -29,16 +29,23 @@ export default function PostFX() {
   const chromaticOffset = useMemo(() => new THREE.Vector2(0.0015, 0.0015), []);
 
   useFrame(() => {
-    if (!bloomRef.current) return;
     const sp = scrollState.smoothProgress;
+    const pressure = scrollState.pressure;
+
+    chromaticOffset.set(
+      0.0015 + pressure * 0.008,
+      0.0015 + pressure * 0.0038,
+    );
+
+    if (!bloomRef.current) return;
     // Restrained base, a measured swell at the abyss threshold, calm settle.
     const spike = smoothstep(0.6, 0.7, sp) * (1 - smoothstep(0.7, 0.82, sp));
     const settle = smoothstep(0.82, 1.0, sp);
-    bloomRef.current.intensity = lerp(0.85, 1.25, settle) + spike * 0.9;
+    bloomRef.current.intensity = lerp(0.85, 1.25, settle) + spike * 0.9 + pressure * 0.46;
   });
 
   return (
-    <EffectComposer multisampling={2}>
+    <EffectComposer multisampling={0}>
       <Bloom
         // The forwarded ref resolves to the BloomEffect instance at runtime; the
         // published types annotate it as the class, hence the cast.

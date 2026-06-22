@@ -50,9 +50,11 @@ export default function MarineSnow({ count, reduced }: MarineSnowProps) {
     () => ({
       uTime: { value: 0 },
       uScrollProgress: { value: 0 },
+      uVelocityPressure: { value: 0 },
       uSize: { value: 58 },
       uPixelRatio: { value: 1 },
       uGather: { value: 0 },
+      uCeremony: { value: 0 },
       uFieldDepth: { value: FIELD_DEPTH },
       uOpacity: { value: 0 },
       uColorCold: { value: new THREE.Color('#9aa6d8') },
@@ -72,10 +74,12 @@ export default function MarineSnow({ count, reduced }: MarineSnowProps) {
     const sp = scrollState.smoothProgress;
     uniforms.uTime.value = state.clock.elapsedTime * (reduced ? 0.18 : 1);
     uniforms.uScrollProgress.value = sp;
+    uniforms.uVelocityPressure.value = reduced ? 0 : scrollState.pressure;
     // Gather into a swarm through the midnight zone, then release for the ring.
     uniforms.uGather.value = reduced
       ? 0
       : smoothstep(0.4, 0.58, sp) * (1 - smoothstep(0.66, 0.8, sp));
+    uniforms.uCeremony.value = reduced ? 0 : smoothstep(0.86, 0.98, sp);
     // Present from just beneath the surface (a 30% floor of drifting plankton),
     // swelling to a full field through the twilight and deep.
     uniforms.uOpacity.value = 0.3 + 0.7 * smoothstep(0.0, 0.2, sp);

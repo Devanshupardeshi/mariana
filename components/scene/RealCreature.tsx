@@ -7,7 +7,7 @@ import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.j
 import * as THREE from 'three';
 
 import { scrollState } from '@/lib/scroll-state';
-import { smoothstep } from '@/lib/math';
+import { clamp, smoothstep } from '@/lib/math';
 import ErrorBoundary from './ErrorBoundary';
 
 export interface RealCreatureConfig {
@@ -24,6 +24,10 @@ export interface RealCreatureConfig {
   drift?: number;
   /** Wide roaming amplitude across x/y/z, used for hero-scale actors. */
   roam?: [number, number, number];
+  /** Directed travel across the actor's visible window. */
+  travel?: [number, number, number];
+  /** Peak banking rotation during the directed travel. */
+  bank?: number;
   /** Per-model material grading while preserving source texture maps. */
   materialGrade?: 'abyssAlien';
   /** Constant Y spin (e.g. for an octopus tumbling); 0 = gentle sway. */
@@ -44,6 +48,8 @@ function Model({
   speed = 0.5,
   drift = 1,
   roam = [1.3, 0.7, 0.8],
+  travel = [0, 0, 0],
+  bank = 0,
   materialGrade,
   spin = 0,
   reduced,
@@ -51,6 +57,9 @@ function Model({
   const outer = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(url, true);
   const matsRef = useRef<{ mat: THREE.Material; base: number }[]>([]);
+  const lastCeremonyRef = useRef(-1);
+  const silhouetteColor = useMemo(() => new THREE.Color('#02030b'), []);
+  const silhouetteEmissive = useMemo(() => new THREE.Color('#07124f'), []);
 
   // Clone, centre, auto-fit to `size`, and isolate materials so we can fade
   // each instance without mutating the cached original.
@@ -83,6 +92,11 @@ function Model({
         cm.metalness = Math.max(0, Math.min(0.25, cm.metalness ?? 0));
         cm.envMapIntensity = 0.35;
         cm.needsUpdate = true;
+      }
+      if (cm instanceof THREE.MeshStandardMaterial) {
+        cm.userData.baseColor = cm.color.clone();
+        cm.userData.baseEmissive = cm.emissive.clone();
+        cm.userData.baseEmissiveIntensity = cm.emissiveIntensity;
       }
       mats.push({ mat: cm, base: (cm as THREE.MeshStandardMaterial).opacity ?? 1 });
       return cm;
@@ -119,8 +133,12 @@ function Model({
 
   useFrame((state) => {
     const sp = scrollState.smoothProgress;
+    const ceremony = smoothstep(0.86, 0.98, sp);
     const presence =
       smoothstep(range[0], range[1], sp) * (1 - smoothstep(range[2], range[3], sp));
+    const local = range[3] > range[0]
+      ? smoothstep(0, 1, clamp((sp - range[0]) / (range[3] - range[0])))
+      : 0.5;
     const fade = smoothstep(0, 0.45, presence);
     const t = state.clock.elapsedTime + phase;
     const g = outer.current;
@@ -131,14 +149,30 @@ function Model({
     const swimY = Math.cos(t * 0.1 * drift + phase * 0.51);
     const swimZ = Math.sin(t * 0.08 * drift + phase * 0.71);
     g.position.set(
-      base.x + swimX * roam[0] * d,
-      base.y + swimY * roam[1] * d,
-      base.z + swimZ * roam[2] * d,
+      base.x + (local - 0.5) * travel[0] + swimX * roam[0] * d,
+      base.y + (local - 0.5) * travel[1] + swimY * roam[1] * d,
+      base.z + (local - 0.5) * travel[2] + swimZ * roam[2] * d,
     );
     g.rotation.y = rotationY + (spin ? t * spin : Math.sin(t * 0.08 * drift) * 0.3);
     g.rotation.x = Math.sin(t * 0.09 * drift + phase) * 0.08;
-    g.rotation.z = Math.sin(t * 0.12 * drift + phase) * 0.1;
-    for (const { mat, base: b } of matsRef.current) mat.opacity = b * fade;
+    g.rotation.z = Math.sin(t * 0.12 * drift + phase) * 0.1 + Math.sin(local * Math.PI) * bank;
+    const updateCeremonyMaterials =
+      ceremony > 0.001 || lastCeremonyRef.current > 0.001 || Math.abs(ceremony - lastCeremonyRef.current) > 0.002;
+
+    for (const { mat, base: b } of matsRef.current) {
+      mat.opacity = b * fade * (1 - ceremony * 0.18);
+      if (updateCeremonyMaterials && mat instanceof THREE.MeshStandardMaterial) {
+        const baseColor = mat.userData.baseColor as THREE.Color | undefined;
+        const baseEmissive = mat.userData.baseEmissive as THREE.Color | undefined;
+        const baseEmissiveIntensity = mat.userData.baseEmissiveIntensity as number | undefined;
+        if (baseColor) mat.color.copy(baseColor).lerp(silhouetteColor, ceremony * 0.82);
+        if (baseEmissive) mat.emissive.copy(baseEmissive).lerp(silhouetteEmissive, ceremony * 0.6);
+        if (typeof baseEmissiveIntensity === 'number') {
+          mat.emissiveIntensity = baseEmissiveIntensity * (1 - ceremony * 0.62);
+        }
+      }
+    }
+    if (updateCeremonyMaterials) lastCeremonyRef.current = ceremony;
   });
 
   return (

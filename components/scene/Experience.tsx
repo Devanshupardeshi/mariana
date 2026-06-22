@@ -6,7 +6,7 @@ import * as THREE from 'three';
 
 import { useExperience } from '@/lib/store';
 import { scrollState } from '@/lib/scroll-state';
-import { damp, lerp, smoothstep } from '@/lib/math';
+import { clamp, damp, lerp, smoothstep } from '@/lib/math';
 
 import Lights from './Lights';
 import WaterSurface from './WaterSurface';
@@ -14,6 +14,7 @@ import GodRays from './GodRays';
 import MarineSnow from './MarineSnow';
 import Creature, { type CreatureConfig } from './Creature';
 import RealCreature, { type RealCreatureConfig } from './RealCreature';
+import LazyByRange from './LazyByRange';
 import GoldenRing from './GoldenRing';
 import SunkenSalvage, { type SalvageConfig } from './SunkenSalvage';
 
@@ -46,6 +47,9 @@ function SceneController({ reduced }: { reduced: boolean }) {
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
+    const targetPressure = reduced
+      ? 0
+      : clamp((Math.abs(scrollState.velocity) - 420) / 6200);
 
     scrollState.smoothProgress = damp(
       scrollState.smoothProgress,
@@ -53,7 +57,14 @@ function SceneController({ reduced }: { reduced: boolean }) {
       3.4,
       dt,
     );
+    scrollState.pressure = damp(
+      scrollState.pressure,
+      targetPressure,
+      targetPressure > scrollState.pressure ? 7.2 : 3.1,
+      dt,
+    );
     const sp = scrollState.smoothProgress;
+    const pressure = scrollState.pressure;
 
     if (!reduced) {
       scrollState.smoothPointerX = damp(
@@ -74,12 +85,17 @@ function SceneController({ reduced }: { reduced: boolean }) {
       camera.position.x = damp(camera.position.x, px * 1.2, 5, dt);
       camera.position.y = damp(
         camera.position.y,
-        py * 0.8 - Math.sin(sp * Math.PI) * 0.6,
+        py * 0.8 - Math.sin(sp * Math.PI) * 0.6 - pressure * 0.58,
         5,
         dt,
       );
-      camera.position.z = 9.2 - Math.sin(sp * Math.PI) * 1.6;
-      const lookY = lerp(3.4, 0, smoothstep(0, 0.2, sp));
+      camera.position.z = damp(
+        camera.position.z,
+        9.2 - Math.sin(sp * Math.PI) * 1.6 - pressure * 0.42,
+        6,
+        dt,
+      );
+      const lookY = lerp(3.4, -pressure * 0.55, smoothstep(0, 0.2, sp));
       camera.lookAt(0, lookY, 0);
     }
 
@@ -125,23 +141,23 @@ export default function Experience() {
   // its own animation.
   const real: RealCreatureConfig[] = [
     // Real fish families visible from the surface. No procedural triangles.
-    { url: '/models/Fish School.glb', position: [-5.1, -2.2, -5.2], size: 10.4, rotationY: -0.18, phase: 2, range: [-0.06, 0.0, 0.23, 0.32], speed: 0.9, drift: 1.05, roam: [3.4, 0.7, 0.65] },
-    { url: '/models/Fish School.glb', position: [5.6, 1.15, -5.8], size: 8.4, rotationY: 2.75, phase: 13, range: [-0.04, 0.02, 0.2, 0.3], speed: 0.78, drift: 0.95, roam: [2.8, 0.65, 0.65] },
+    { url: '/models/fish_school.glb', position: [-5.1, -2.2, -5.2], size: 10.4, rotationY: -0.18, phase: 2, range: [-0.06, 0.0, 0.23, 0.32], speed: 0.9, drift: 1.05, roam: [2.4, 0.54, 0.5], travel: [4.6, 0.35, -0.4], bank: -0.08 },
+    { url: '/models/fish_school.glb', position: [5.6, 1.15, -5.8], size: 8.4, rotationY: 2.75, phase: 13, range: [-0.04, 0.02, 0.2, 0.3], speed: 0.78, drift: 0.95, roam: [2.0, 0.5, 0.5], travel: [-3.8, -0.2, -0.25], bank: 0.07 },
     // Surface heroes: animated manta above, turtle below, framing the first act.
     { url: '/models/model_84b_-_manta_ray_swimming.glb', position: [8.9, 4.55, -20], size: 0.42, rotationY: -0.72, phase: 5, range: [-0.04, 0.02, 0.16, 0.24], speed: 0.72, drift: 0.78, roam: [0.55, 0.14, 0.16] },
-    { url: '/models/sea_turtle.glb', position: [-6.4, 1.65, -4.7], size: 14.4, rotationY: 0.78, phase: 9, range: [-0.04, 0.01, 0.18, 0.28], speed: 0.85, drift: 0.9, roam: [1.35, 0.28, 0.45] },
+    { url: '/models/sea_turtle.glb', position: [-6.4, 1.65, -4.7], size: 14.4, rotationY: 0.78, phase: 9, range: [-0.04, 0.01, 0.18, 0.28], speed: 0.85, drift: 0.9, roam: [0.85, 0.22, 0.35], travel: [2.8, 0.32, -0.2], bank: -0.06 },
     // A stingray gliding through the upper twilight into the midnight.
-    { url: '/models/common_stingray.glb', position: [-7.7, 1.45, -5.3], size: 12.8, rotationY: 0.58, phase: 0, range: [0.17, 0.24, 0.34, 0.43], speed: 0.62, drift: 0.82, roam: [1.8, 0.55, 0.7] },
+    { url: '/models/common_stingray.glb', position: [-7.7, 1.45, -5.3], size: 12.8, rotationY: 0.58, phase: 0, range: [0.17, 0.24, 0.34, 0.43], speed: 0.62, drift: 0.82, roam: [0.9, 0.38, 0.48], travel: [3.4, -0.25, -0.3], bank: -0.12 },
     // A real fish school crossing the lower frame.
-    { url: '/models/Fish School.glb', position: [-6.9, -4.25, -9.4], size: 10.5, rotationY: -0.2, phase: 7, range: [0.22, 0.34, 0.68, 0.82], speed: 0.9, drift: 1.15, roam: [2.4, 0.7, 1.1] },
+    { url: '/models/fish_school.glb', position: [-6.9, -4.25, -9.4], size: 10.5, rotationY: -0.2, phase: 7, range: [0.22, 0.34, 0.68, 0.82], speed: 0.9, drift: 1.15, roam: [1.8, 0.55, 0.8], travel: [4.2, 0.35, -0.4], bank: -0.08 },
     // The octopus — a midnight centrepiece set off to the left of the copy.
-    { url: '/models/octpus.glb', position: [7.2, -3.2, -7.1], size: 7.8, rotationY: -0.65, phase: 4, range: [0.36, 0.5, 0.6, 0.68], speed: 0.55, drift: 0.8, spin: 0.055, roam: [2.1, 0.85, 1.0] },
+    { url: '/models/octpus.glb', position: [7.2, -3.2, -7.1], size: 7.8, rotationY: -0.65, phase: 4, range: [0.36, 0.5, 0.6, 0.68], speed: 0.55, drift: 0.8, spin: 0.055, roam: [1.25, 0.6, 0.7], travel: [-2.4, 0.55, -0.5] },
     // A detailed fish accent on the right as we approach the floor.
-    { url: '/models/BarramundiFish.glb', position: [-7.4, 0.65, -6.4], size: 12.2, rotationY: 0.7, phase: 11, range: [0.62, 0.7, 0.88, 0.96], speed: 0.62, drift: 1.05, roam: [1.9, 0.85, 0.8] },
+    { url: '/models/BarramundiFish.glb', position: [-7.4, 0.65, -6.4], size: 12.2, rotationY: 0.7, phase: 11, range: [0.62, 0.7, 0.88, 0.96], speed: 0.62, drift: 1.05, roam: [1.1, 0.55, 0.55], travel: [2.3, -0.2, -0.35], bank: -0.1 },
     // Alien abyss fish: big right-side hero for the last deep phase.
-    { url: '/models/alien_fish_animated.glb', position: [7.4, -0.15, -6.1], size: 13.6, rotationY: -0.75, phase: 19, range: [0.64, 0.72, 0.9, 0.98], speed: 0.7, drift: 0.95, roam: [1.7, 0.8, 0.85], materialGrade: 'abyssAlien' },
+    { url: '/models/alien_fish_animated.glb', position: [7.4, -0.15, -6.1], size: 13.6, rotationY: -0.75, phase: 19, range: [0.64, 0.72, 0.9, 0.98], speed: 0.7, drift: 0.95, roam: [1.0, 0.55, 0.55], travel: [-2.2, 0.28, -0.35], bank: 0.1, materialGrade: 'abyssAlien' },
     // Bottom-dwelling isopod for the hadal floor.
-    { url: '/models/giant_isopod.glb', position: [-7.0, 3.35, -6.2], size: 7.2, rotationY: 0.72, phase: 23, range: [0.38, 0.48, 0.6, 0.7], speed: 0.35, drift: 0.55, roam: [0.9, 0.22, 0.45] },
+    { url: '/models/giant_isopod.glb', position: [-7.0, 3.35, -6.2], size: 7.2, rotationY: 0.72, phase: 23, range: [0.38, 0.48, 0.6, 0.7], speed: 0.35, drift: 0.55, roam: [0.42, 0.12, 0.28], travel: [1.4, -0.24, -0.15] },
   ];
   const realVisible = reduced ? real.slice(0, 4) : isCompact ? real.slice(0, 5) : real;
 
@@ -167,7 +183,9 @@ export default function Experience() {
         <Creature key={i} {...c} reduced={reduced} />
       ))}
       {realVisible.map((r, i) => (
-        <RealCreature key={`${r.url}-${i}`} {...r} reduced={reduced} />
+        <LazyByRange key={`${r.url}-${i}`} range={r.range} margin={0.12}>
+          <RealCreature {...r} reduced={reduced} />
+        </LazyByRange>
       ))}
       <GoldenRing count={ringCount} reduced={reduced} />
       {salvage.map((s, i) => (

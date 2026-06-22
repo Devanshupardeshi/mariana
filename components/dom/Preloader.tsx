@@ -19,6 +19,7 @@ export default function Preloader() {
   const canvasReady = useExperience((s) => s.canvasReady);
   const reducedMotion = useExperience((s) => s.reducedMotion);
   const reveal = useExperience((s) => s.reveal);
+  const setCanvasReady = useExperience((s) => s.setCanvasReady);
 
   const [gone, setGone] = useState(false);
 
@@ -42,23 +43,32 @@ export default function Preloader() {
     let raf = 0;
     let current = 0;
     let exiting = false;
+    let exitFallback = 0;
     const start = performance.now();
     const minDuration = reducedRef.current ? 500 : 2200;
+    const finishReveal = () => {
+      reveal();
+      setGone(true);
+    };
     const safety = window.setTimeout(() => {
       canvasReadyRef.current = true;
+      setCanvasReady(true);
+      if (performance.now() - start >= minDuration) startExit();
     }, reducedRef.current ? 1200 : 6000);
 
     const startExit = () => {
       if (exiting) return;
       exiting = true;
+      window.clearTimeout(safety);
+      exitFallback = window.setTimeout(finishReveal, reducedRef.current ? 650 : 2600);
 
       if (reducedRef.current) {
         gsap.to(rootRef.current, {
           autoAlpha: 0,
           duration: 0.3,
           onComplete: () => {
-            reveal();
-            setGone(true);
+            window.clearTimeout(exitFallback);
+            finishReveal();
           },
         });
         return;
@@ -67,8 +77,8 @@ export default function Preloader() {
       const tl = gsap.timeline({
         defaults: { ease: 'power2.inOut' },
         onComplete: () => {
-          reveal();
-          setGone(true);
+          window.clearTimeout(exitFallback);
+          finishReveal();
         },
       });
       tl.to(counterRef.current, {
@@ -116,6 +126,7 @@ export default function Preloader() {
     return () => {
       cancelAnimationFrame(raf);
       window.clearTimeout(safety);
+      window.clearTimeout(exitFallback);
     };
     // Intentionally run once; latest values are read via refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps

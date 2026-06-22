@@ -30,6 +30,7 @@ export default function WaterSurface({ reduced }: WaterSurfaceProps) {
     () => ({
       uTime: { value: 0 },
       uScrollProgress: { value: 0 },
+      uVelocityPressure: { value: 0 },
       uOpacity: { value: 1 },
       uPointer: { value: new THREE.Vector2(0, 0) },
       uColorDeep: { value: new THREE.Color('#1a1f4d') },
@@ -45,6 +46,7 @@ export default function WaterSurface({ reduced }: WaterSurfaceProps) {
     const deep = smoothstep(0.08, 0.95, sp);
     uniforms.uTime.value = state.clock.elapsedTime * (reduced ? 0.3 : 1);
     uniforms.uScrollProgress.value = sp;
+    uniforms.uVelocityPressure.value = reduced ? 0 : scrollState.pressure;
     uniforms.uOpacity.value = lerp(1, 0.82, deep);
     uniforms.uPointer.value.set(
       reduced ? 0 : scrollState.smoothPointerX,

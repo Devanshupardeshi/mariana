@@ -56,6 +56,7 @@ export default function GoldenRing({ count, reduced }: GoldenRingProps) {
       uPixelRatio: { value: 1 },
       uReveal: { value: 0 },
       uOrbit: { value: 1.2 },
+      uCeremony: { value: 0 },
       uOpacity: { value: 1 },
       uColorGold: { value: new THREE.Color(PALETTE.hydrothermalGold) },
       uColorHot: { value: new THREE.Color('#fff0d6') },
@@ -73,14 +74,18 @@ export default function GoldenRing({ count, reduced }: GoldenRingProps) {
     const sp = scrollState.smoothProgress;
     uniforms.uTime.value = state.clock.elapsedTime * (reduced ? 0.4 : 1);
     const reveal = smoothstep(0.66, 0.84, sp);
+    const ceremony = smoothstep(0.86, 0.98, sp);
     uniforms.uReveal.value = reveal;
+    uniforms.uCeremony.value = ceremony;
     // Energetic assembly, then a calm planetary rotation for the sanctuary.
-    uniforms.uOrbit.value = lerp(1.4, 0.5, smoothstep(0.84, 1.0, sp));
+    uniforms.uOrbit.value = lerp(1.4, 0.5, smoothstep(0.84, 1.0, sp)) + ceremony * 0.35;
 
     if (groupRef.current) {
       groupRef.current.visible = reveal > 0.001;
       // The whole ring tips toward the viewer as it settles.
       groupRef.current.rotation.x = lerp(0.0, -0.32, reveal);
+      groupRef.current.rotation.z = ceremony * 0.12;
+      groupRef.current.scale.setScalar(1 + Math.sin(ceremony * Math.PI) * 0.08);
     }
   });
 
